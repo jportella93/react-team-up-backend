@@ -47,6 +47,8 @@ const assignTeam = (player) => {
 	return assignedTeam
 }
 
+const movingPower = 50;
+
 // mockPongMovement = (num) => {
 // 	if (num < 1000) num++
 // 	if (num === 1000) num = 0
@@ -56,12 +58,14 @@ const assignTeam = (player) => {
 const io = require('socket.io')(serv,{});
 io.sockets.on('connection', function(socket){
 	console.log('someone connected');
+	const socketId = socket.id
 
 	socket.on('playerEnter', (player) => {
 		const team = assignTeam(player.id)
 		USER_LIST[player.id] = {
 			id: player.id,
-			team: team
+			team: team,
+			socketId
 		}
 
 		socket.emit('playerEnterAnswer', USER_LIST[player.id])
@@ -70,24 +74,54 @@ io.sockets.on('connection', function(socket){
 	socket.on('pressUp', (data) => {
 		// console.log('data:', data);
 		// console.log('USERLIST:', USER_LIST);
-		nextComputedMovement[data.team]++
+		nextComputedMovement[data.team] -= movingPower
 	})
 
 	socket.on('pressDown', (data) => {
 		// console.log('data:', data);
 		// console.log('USERLIST:', USER_LIST);
-		nextComputedMovement[data.team]--
+		nextComputedMovement[data.team] += movingPower
 	})
+
+	socket.on('endGame', (data) => {
+		console.log('GAME ENDED ------------------------------------------------------------------------------');
+	})
+
+	setInterval(()=> {
+		console.log('==USER LIST:',USER_LIST)
+		console.log('==SOCKET LIST:',Object.keys(io.sockets.sockets));
+	}, 2000)
 
 	setInterval(() => {
 		socket.emit('frame', calculateNextFrame());
 		nextComputedMovement.blue = 0;
 		nextComputedMovement.red = 0;
-	} ,1000)
+	} ,1000/300)
 
-	socket.on('disconnect',function(){
+	socket.on('disconnect',function(socket){
 		console.log('someone disconnected');
-	});
 
+		const cleanUserFromList = () => {
+			for (let i in USER_LIST) {
+				if (!Object.keys(io.sockets.sockets).includes(USER_LIST[i].socketId)) {
+					delete USER_LIST[i]
+
+					for (let prop in RED_TEAM) {
+						if (prop === i) {
+							delete RED_TEAM[prop]
+							RED_TEAM.length--
+						}
+					}
+					for (let prop in BLUE_TEAM) {
+						if (prop === i) {
+							delete BLUE_TEAM[prop]
+							BLUE_TEAM.length--
+						}
+					}
+				}
+			}
+		}
+		cleanUserFromList();		
+	});
 
 });
