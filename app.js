@@ -3,6 +3,7 @@ const app = express();
 const serv = require('http').Server(app);
 
 app.get('/',function(req, res) {
+	res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
 	res.send('')
 });
 
@@ -39,7 +40,6 @@ const calculateNextFrame = () => {
 	if (frame.redPong > Game.height) frame.redPong = Game.height
 	if (frame.bluePong < 0) frame.bluePong = 0
 	if (frame.redPong < 0) frame.redPong = 0
-	// console.log('frame',frame);
 	return frame
 }
 
@@ -75,23 +75,17 @@ const balanceTeams = () => {
 
 const movingPower = 50;
 
-// mockPongMovement = (num) => {
-// 	if (num < 1000) num++
-// 	if (num === 1000) num = 0
-// 	return num
-// }
+
 
 const io = require('socket.io')(serv,{});
 
 io.sockets.on('connection', function(socket){
-	// console.log('someone connected');
 	const socketId = socket.id
 
 	socket.on('windowSize', (data) => {
 		console.log('--------windowSize:', data)
 		Game.height = data.height
 		Game.width = data.width
-		// console.log('CURRENT GAME STATS:', Game);
 	})
 
 	socket.on('playerEnter', (player) => {
@@ -115,15 +109,11 @@ io.sockets.on('connection', function(socket){
 	})
 
 	socket.on('pressUp', (data) => {
-		// console.log('data:', data);
-		// console.log('USERLIST:', USER_LIST);
 		nextComputedMovement[data.team] -= movingPower
 		Game.timeOfLastAction = Date.now()
 	})
 
 	socket.on('pressDown', (data) => {
-		// console.log('data:', data);
-		// console.log('USERLIST:', USER_LIST);
 		nextComputedMovement[data.team] += movingPower
 		Game.timeOfLastAction = Date.now()
 	})
@@ -141,8 +131,7 @@ io.sockets.on('connection', function(socket){
 	})
 
 
-	// setInterval(()=> {
-	// socket.emit('announceWinner', winner)}, 1000)
+
 	setInterval(() => {
 		if (Game.started && Date.now() - Game.timeOfLastAction > 10000) {
 			console.log('game timed Out---------------------------------------------------------------');
@@ -152,15 +141,11 @@ io.sockets.on('connection', function(socket){
 			// console.log(Game);
 			setTimeout(()=> Game.ready = true, 5000)
 		}
-		// if (Game.started && Date.now() - Game.timeOfLastAction > 60000) {
-		//
-		// }
+
 
 	}, 3000)
 
-	// setInterval(()=> {
-	// 	console.log('Current teams length: red:', RED_TEAM.length, 'blue: ', BLUE_TEAM.length);
-	// }, 20000)
+
 
 	setInterval(() => {
 		if (Game.started) {
